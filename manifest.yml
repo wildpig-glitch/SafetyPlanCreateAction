@@ -1,0 +1,25 @@
+modules:
+  webtrigger:
+    - key: safetyplancreateaction-webtrigger-sync
+      function: sync
+      response:
+        type: dynamic
+    - key: safetyplancreateaction-webtrigger-async
+      function: async
+      response:
+        type: dynamic
+  function:
+    - key: sync
+      handler: index.runSync
+    - key: async
+      handler: index.runAsync
+app:
+  runtime:
+    name: nodejs22.x
+    memoryMB: 256
+    architecture: arm64
+  id: ari:cloud:ecosystem::app/32dbd006-4951-4027-84a9-0c75cb8c661c
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
