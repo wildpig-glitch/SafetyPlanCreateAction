@@ -1,0 +1,27 @@
+{
+  "name": "safety-plan-create-action",
+  "version": "1.0.0",
+  "description": "Forge app for managing safety plans in Jira",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "@forge/api": "^2.9.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "@babel/core": "^7.22.5",
+    "@babel/preset-env": "^7.22.5",
+    "babel-jest": "^29.5.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.jsx?$": "babel-jest"
+    },
+    "setupFilesAfterEnv": ["./jest.setup.js"],
+    "moduleDirectories": ["node_modules", "src"]
+  }
+}
