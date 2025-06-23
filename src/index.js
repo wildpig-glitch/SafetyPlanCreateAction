@@ -62,8 +62,8 @@ async function takeOverAsilStory(sourceEpicKey, carline) {
   );
 
   // Create all subtasks sequentially
-  console.log(`Creating ${subtaskPayloads.length} subtasks sequentially...`);
-  const { successful, failed } = await createIssuesSequentially(subtaskPayloads, 0);
+  
+  const { successful, failed } = await createIssuesBatch(subtaskPayloads);
 
   console.log(`Successfully created ${successful.length} subtasks`);
   if (failed.length > 0) {

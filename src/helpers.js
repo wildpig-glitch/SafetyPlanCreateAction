@@ -172,6 +172,7 @@ export async function createIssuesBatch(issuePayloads, batchSize = 10, delayMs =
 
 // Create issues sequentially (one by one) instead of in parallel
 export async function createIssuesSequentially(issuePayloads, delayMs = 0) {
+  console.log(`Creating ${issuePayloads.length} subtasks sequentially... with ${delayMs}ms delay between each...`);
   const successful = [];
   const failed = [];
 
