@@ -4,6 +4,7 @@ import {
   getChildrenIssues, 
   getChildrenyIssuesByAsilLevel,
   createIssuesBatch,
+  createIssuesSequentially,
   preloadIssueTypeMappings
 } from '../helpers';
 import { sourceProjectKey, issueTypeCache, projectCache } from '../constants';
@@ -186,6 +187,69 @@ describe('Helper Functions', () => {
       expect(result.successful[0]).toEqual({ key: 'TEST-101' });
       expect(result.successful[1]).toEqual({ key: 'TEST-103' });
       expect(result.failed[0].payload).toEqual({ summary: 'Issue 2' });
+    });
+  });
+
+  describe('createIssuesSequentially', () => {
+    it('should create issues sequentially and return successful and failed results', async () => {
+      const mockPayloads = [
+        { summary: 'Issue 1' },
+        { summary: 'Issue 2' },
+        { summary: 'Issue 3' }
+      ];
+      
+      // Mock successful and failed responses
+      const mockRequestJira = jest.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ key: 'TEST-101' })
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          text: jest.fn().mockResolvedValue('Invalid field')
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ key: 'TEST-103' })
+        });
+      
+      asApp.mockReturnValue({ requestJira: mockRequestJira });
+      
+      const result = await createIssuesSequentially(mockPayloads, 0); // No delay for testing
+      
+      expect(result.successful.length).toBe(2);
+      expect(result.failed.length).toBe(1);
+      expect(result.successful[0]).toEqual({ key: 'TEST-101' });
+      expect(result.successful[1]).toEqual({ key: 'TEST-103' });
+      expect(result.failed[0].payload).toEqual({ summary: 'Issue 2' });
+      
+      // Verify that requests were made sequentially (one at a time)
+      expect(mockRequestJira).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle exceptions during issue creation', async () => {
+      const mockPayloads = [
+        { summary: 'Issue 1' },
+        { summary: 'Issue 2' }
+      ];
+      
+      const mockRequestJira = jest.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ key: 'TEST-101' })
+        })
+        .mockRejectedValueOnce(new Error('Network error'));
+      
+      asApp.mockReturnValue({ requestJira: mockRequestJira });
+      
+      const result = await createIssuesSequentially(mockPayloads, 0);
+      
+      expect(result.successful.length).toBe(1);
+      expect(result.failed.length).toBe(1);
+      expect(result.successful[0]).toEqual({ key: 'TEST-101' });
+      expect(result.failed[0].payload).toEqual({ summary: 'Issue 2' });
+      expect(result.failed[0].error).toBe('Network error');
     });
   });
 

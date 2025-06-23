@@ -1,0 +1,103 @@
+async function getIssueKeyByAsilLevel(asilLevel) {
+  let jql = `project = ${sourceProjectKey}`;
+
+  if (asilLevel.length > 0) {
+    // Add conditions for included ASIL levels
+    asilLevel.forEach(item => {
+      jql += ` AND ASIL_Level = ${item}`;
+    });
+    // Add conditions to exclude other ASIL levels
+    const allAsilLevels = ['A', 'B', 'C', 'D'];
+    const excludedLevels = allAsilLevels.filter(level => !asilLevel.includes(level));
+    excludedLevels.forEach(item => {
+      jql += ` AND ASIL_Level != ${item}`;
+    });
+  }
+
+async function createIssuesBatch(issuePayloads) {
+  const createPromises = issuePayloads.map(payload => 
+    api.asApp().requestJira(
+      route`/rest/api/3/issue`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: payload }),
+      }
+    )
+  );
+  
+  const results = await Promise.allSettled(createPromises);
+  const successful = [];
+  const failed = [];
+  
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === 'fulfilled' && result.value.ok) {
+      const createdIssue = await result.value.json();
+      successful.push(createdIssue);
+    } else {
+      const error = result.status === 'rejected' 
+        ? result.reason 
+        : `HTTP ${result.value.status}: ${await result.value.text()}`;
+      failed.push({ payload: issuePayloads[i], error });
+    }
+  }
+  
+  return { successful, failed };
+}
+
+async function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function createIssuesBatch(issuePayloads, batchSize = 10, delayMs = 1000) {
+  const successful = [];
+  const failed = [];
+
+  for (let i = 0; i < issuePayloads.length; i += batchSize) {
+    const batch = issuePayloads.slice(i, i + batchSize);
+    const createPromises = batch.map(payload => 
+      api.asApp().requestJira(
+        route`/rest/api/3/issue`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: payload }),
+        }
+      )
+    );
+
+    const results = await Promise.allSettled(createPromises);
+
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      if (result.status === 'fulfilled' && result.value.ok) {
+        const createdIssue = await result.value.json();
+        successful.push(createdIssue);
+      } else {
+        const error = result.status === 'rejected' 
+          ? result.reason 
+          : `HTTP ${result.value.status}: ${await result.value.text()}`;
+        failed.push({ payload: batch[j], error });
+      }
+    }
+
+    // Delay before the next batch
+    await delay(delayMs);
+  }
+
+  return { successful, failed };
+}
+
+
+import * as CONSTANTS from './constants.js';
+
+// Usage:
+console.log(CONSTANTS.WEB_TRIGGER_URL);
+console.log(CONSTANTS.VALID_ASIL_LEVELS);
+console.log(CONSTANTS.SOME_OTHER_CONST);
+
+
+// src/helpers.js
+import { WEB_TRIGGER_URL, VALID_ASIL_LEVELS } from './constants.js';
+// ...rest of your code

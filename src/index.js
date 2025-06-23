@@ -1,6 +1,6 @@
 //import { api, route } from '@forge/api';
 import { asApp, route } from '@forge/api';
-import { getIssueKeyByAsilLevel, preloadIssueTypeMappings, getIssueTypeIdByName, createIssuesBatch,getChildrenIssues, getChildrenyIssuesByAsilLevel } from './helpers';
+import { getIssueKeyByAsilLevel, preloadIssueTypeMappings, getIssueTypeIdByName, createIssuesBatch, createIssuesSequentially, getChildrenIssues, getChildrenyIssuesByAsilLevel } from './helpers';
 import { sourceProjectKey,asilCustomFieldId,sourceEpicKey,carlineCustomFieldId } from './constants.js';
 
 async function takeOverAsilStory(sourceEpicKey, carline) {
@@ -43,7 +43,7 @@ async function takeOverAsilStory(sourceEpicKey, carline) {
   const newParent = await createParentRes.json();
   const newParentKey = newParent.key;
 
-  // Prepare all subtask payloads for batch creation
+  // Prepare all subtask payloads for sequential creation
   const subtaskPayloads = await Promise.all(
     subtasks.map(async (subtask) => {
       const subtaskTypeName = subtask.fields.issuetype.name;
@@ -61,9 +61,9 @@ async function takeOverAsilStory(sourceEpicKey, carline) {
     })
   );
 
-  // Create all subtasks in parallel
-  console.log(`Creating ${subtaskPayloads.length} subtasks in parallel...`);
-  const { successful, failed } = await createIssuesBatch(subtaskPayloads);
+  // Create all subtasks sequentially
+  console.log(`Creating ${subtaskPayloads.length} subtasks sequentially...`);
+  const { successful, failed } = await createIssuesSequentially(subtaskPayloads, 0);
 
   console.log(`Successfully created ${successful.length} subtasks`);
   if (failed.length > 0) {
@@ -129,7 +129,7 @@ async function cloneAsilStory(targetProject, asilLevel, systemName, carline) {
   const newParent = await createParentRes.json();
   const newParentKey = newParent.key;
 
-  // Prepare all subtask payloads for batch creation
+  // Prepare all subtask payloads for sequential creation
   const subtaskPayloads = await Promise.all(
     subtasks.map(async (subtask) => {
       const subtaskTypeName = subtask.fields.issuetype.name;
@@ -147,8 +147,9 @@ async function cloneAsilStory(targetProject, asilLevel, systemName, carline) {
     })
   );
 
-  // Create all subtasks in parallel
-  console.log(`Creating ${subtaskPayloads.length} subtasks in parallel...`);
+  // Create all subtasks sequentially
+  
+  //const { successful, failed } = await createIssuesSequentially(subtaskPayloads, 0);
   const { successful, failed } = await createIssuesBatch(subtaskPayloads);
 
   console.log(`Successfully created ${successful.length} subtasks`);

@@ -16,6 +16,7 @@ jest.mock('../helpers', () => ({
   getChildrenIssues: jest.fn(),
   getChildrenyIssuesByAsilLevel: jest.fn(),
   createIssuesBatch: jest.fn(),
+  createIssuesSequentially: jest.fn(),
   preloadIssueTypeMappings: jest.fn()
 }));
 
@@ -96,7 +97,7 @@ describe('Index Functions', () => {
       // Mock helper functions
       helpers.getChildrenyIssuesByAsilLevel.mockResolvedValue(subtasks);
       helpers.getIssueTypeIdByName.mockResolvedValue('type-1');
-      helpers.createIssuesBatch.mockResolvedValue({
+      helpers.createIssuesSequentially.mockResolvedValue({
         successful: [{ key: 'TARGET-101' }],
         failed: []
       });
@@ -166,7 +167,7 @@ describe('Index Functions', () => {
       // Mock helper functions
       helpers.getChildrenIssues.mockResolvedValue(subtasks);
       helpers.getIssueTypeIdByName.mockResolvedValue('type-2');
-      helpers.createIssuesBatch.mockResolvedValue({
+      helpers.createIssuesSequentially.mockResolvedValue({
         successful: [{ key: 'FS-201' }],
         failed: []
       });

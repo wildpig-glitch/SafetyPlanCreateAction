@@ -96,7 +96,7 @@ export async function getChildrenIssues(parentIssue, project) {
 
 // Returns the issue key for the given ASIL level (A, B, C, D, QM) in the FuSaDemo project
 export async function getChildrenyIssuesByAsilLevel(parentIssue, asilLevel) {
-  let jql = `project = ${sourceProjectKey} AND parent = ${parentIssue} AND ASIL_Level = ${asilLevel}`;
+  let jql = `project = ${sourceProjectKey} AND parent = ${parentIssue} AND ASIL_Level = ${asilLevel} order by key`;
 
   console.log(`Searching for work items with ASIL level ${asilLevel} with JQL: ${jql}`);
 
@@ -130,7 +130,8 @@ async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function createIssuesBatch(issuePayloads, batchSize = 10, delayMs = 500) {
+export async function createIssuesBatch(issuePayloads, batchSize = 10, delayMs = 10) {
+  console.log(`Creating ${issuePayloads.length} subtasks in batchs of ${batchSize} with ${delayMs}ms delay...`);
   const successful = [];
   const failed = [];
 
@@ -164,6 +165,48 @@ export async function createIssuesBatch(issuePayloads, batchSize = 10, delayMs =
 
     // Delay before the next batch
     await delay(delayMs);
+  }
+
+  return { successful, failed };
+}
+
+// Create issues sequentially (one by one) instead of in parallel
+export async function createIssuesSequentially(issuePayloads, delayMs = 0) {
+  const successful = [];
+  const failed = [];
+
+  for (let i = 0; i < issuePayloads.length; i++) {
+    const payload = issuePayloads[i];
+    
+    try {
+      const response = await asApp().requestJira(
+        route`/rest/api/3/issue`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: payload }),
+        }
+      );
+
+      if (response.ok) {
+        const createdIssue = await response.json();
+        successful.push(createdIssue);
+        console.log(`Successfully created issue ${i + 1}/${issuePayloads.length}: ${createdIssue.key}`);
+      } else {
+        const errorText = await response.text();
+        const error = `HTTP ${response.status}: ${errorText}`;
+        failed.push({ payload, error });
+        console.error(`Failed to create issue ${i + 1}/${issuePayloads.length}: ${error}`);
+      }
+    } catch (error) {
+      failed.push({ payload, error: error.message || error });
+      console.error(`Failed to create issue ${i + 1}/${issuePayloads.length}: ${error.message || error}`);
+    }
+
+    // Add delay between requests (except for the last one)
+    if (i < issuePayloads.length - 1) {
+      await delay(delayMs);
+    }
   }
 
   return { successful, failed };
